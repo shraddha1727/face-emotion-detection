@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmotiSense - Live Emotion Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      background-image: 
+        radial-gradient(at 40% 20%, hsla(228,100%,74%,0.12) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, hsla(189,100%,56%,0.12) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, hsla(355,100%,93%,0.12) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, hsla(340,100%,76%,0.12) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, hsla(22,100%,77%,0.12) 0px, transparent 50%),
+        radial-gradient(at 80% 100%, hsla(242,100%,70%,0.12) 0px, transparent 50%);
+      min-height: 100vh;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Animated mesh gradient */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(45deg, transparent 30%, rgba(120, 119, 198, 0.05) 50%, transparent 70%),
+        linear-gradient(-45deg, transparent 30%, rgba(255, 119, 198, 0.05) 50%, transparent 70%);
+      animation: meshMove 20s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    @keyframes meshMove {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      25% { transform: translateX(5px) translateY(-5px); }
+      50% { transform: translateX(-3px) translateY(3px); }
+      75% { transform: translateX(3px) translateY(5px); }
+    }
+
+    .header {
+      background: rgba(15, 15, 35, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .logo {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: logoGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes logoGlow {
+      from { filter: drop-shadow(0 0 5px rgba(96, 165, 250, 0.3)); }
+      to { filter: drop-shadow(0 0 15px rgba(167, 139, 250, 0.5)); }
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+
+    @keyframes gradientShift {
+
+      0%,
+      100% {
+        filter: hue-rotate(0deg);
+      }
+
+      50% {
+        filter: hue-rotate(90deg);
+      }
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      color: white;
+      box-shadow: 0 4px 15px rgba(96, 165, 250, 0.3);
+      animation: avatarPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes avatarPulse {
+      0%, 100% { box-shadow: 0 4px 15px rgba(96, 165, 250, 0.3); }
+      50% { box-shadow: 0 4px 25px rgba(167, 139, 250, 0.5); }
+    }
+
+    #username {
+      font-weight: 600;
+      color: #f1f5f9;
+      font-size: 0.95rem;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 25px;
+      color: #f1f5f9;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      font-size: 0.9rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(96, 165, 250, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .main-container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 2rem;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+    }
+
+    .page-title::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+      border-radius: 2px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .camera-section {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 2.5rem;
+      text-align: center;
+      box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .camera-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa, #34d399);
+      opacity: 0.8;
+    }
+
+    .camera-section:hover {
+      box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transform: translateY(-5px);
+      border-color: rgba(96, 165, 250, 0.3);
+    }
+
+    .emotion-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .current-emotion {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.05),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .current-emotion::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+    }
+
+    .current-emotion:hover {
+      box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.1),
+        0 4px 10px rgba(0, 0, 0, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .activity-suggestions {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.05),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .activity-suggestions:hover {
+      box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.1),
+        0 4px 10px rgba(0, 0, 0, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .suggestions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .activity-suggestions h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .refresh-btn {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+    }
+
+    .refresh-btn:hover {
+      background: #e2e8f0;
+      transform: rotate(180deg);
+    }
+
+    .suggestion-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .suggestion-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .suggestion-card:hover {
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      border-color: #3b82f6;
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    }
+
+    .suggestion-card:hover::before {
+      opacity: 1;
+    }
+
+    .suggestion-icon {
+      font-size: 1.5rem;
+      min-width: 40px;
+      text-align: center;
+      margin-top: 0.25rem;
+    }
+
+    .suggestion-text {
+      flex: 1;
+    }
+
+    .suggestion-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.25rem;
+    }
+
+    .suggestion-desc {
+      font-size: 0.8rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .camera-container {
+      position: relative;
+      display: inline-block;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.15),
+        0 3px 10px rgba(0, 0, 0, 0.1);
+      background: #000;
+      border: 3px solid #f1f5f9;
+      transition: all 0.3s ease;
+    }
+
+    .camera-container:hover {
+      box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.2),
+        0 5px 15px rgba(0, 0, 0, 0.1);
+      border-color: #3b82f6;
+    }
+
+    video,
+    canvas {
+      display: block;
+      border-radius: 12px;
+      width: 640px;
+      height: 480px;
+    }
+
+    video {
+      background: #000;
+      object-fit: cover;
+      /* Better video scaling */
+    }
+
+    canvas {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      pointer-events: none;
+    }
+
+    .current-emotion {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(30px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 25px;
+      padding: 2.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .current-emotion:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+    }
+
+    .current-emotion::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(0, 255, 255, 0.2), rgba(255, 0, 150, 0.2), rgba(138, 43, 226, 0.2), transparent);
+      animation: rotate 8s linear infinite;
+      pointer-events: none;
+    }
+
+    .emotion-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .emotion-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: emotionPulse 2s ease-in-out infinite;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+      transition: all 0.3s ease;
+    }
+
+    .emotion-icon:hover {
+      transform: scale(1.1);
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+    }
+
+    @keyframes emotionPulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    .emotion-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120%;
+      height: 120%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, rgba(255, 0, 150, 0.1) 50%, transparent 70%);
+      z-index: -1;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .emotion-text {
+      text-align: left;
+    }
+
+    .emotion-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #1e293b;
+    }
+
+    .emotion-confidence {
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      50% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+    }
+
+    @keyframes rotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status {
+      text-align: center;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status.error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+    }
+
+    .status.success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #16a34a;
+    }
+
+    .status.loading {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #2563eb;
+    }
+
+    .status.loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        left: -100%;
+      }
+
+      100% {
+        left: 100%;
+      }
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 1rem;
+      }
+
+      .content-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .camera-container video,
+      .camera-container canvas {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+      }
+
+      .emotion-display {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .page-title {
+        font-size: 1.5rem;
+      }
+
+      .header {
+        padding: 1rem;
+      }
+
+      .logo {
+        font-size: 1.2rem;
+      }
+
+      .suggestion-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+      }
+
+      .suggestion-icon {
+        font-size: 3rem;
+      }
+
+      .page-title {
+        font-size: 2rem;
+      }
+
+      .header {
+        padding: 1rem;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">E</div>
+      EmotiSense
+    </div>
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">👤</div>
+      <span id="username">Guest</span>
+      <button class="btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <h2 class="page-title">🎭 Live Emotion Detection</h2>
+    <div id="status" class="status"></div>
+
+    <div class="content-grid">
+      <div class="camera-section">
+        <div class="camera-container">
+          <video id="webcam" autoplay playsinline width="640" height="480"></video>
+          <canvas id="overlay" width="640" height="480"></canvas>
+        </div>
+      </div>
+
+      <div class="emotion-section">
+        <div class="current-emotion">
+          <div class="emotion-display">
+            <div class="emotion-icon" id="emotionIcon">😐</div>
+            <div class="emotion-text">
+              <div class="emotion-name" id="currentEmotion">Detecting...</div>
+              <div class="emotion-confidence" id="confidence">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="activity-suggestions" id="activitySuggestions">
+          <div class="suggestions-header">
+            <h3>💡 Suggested Activities</h3>
+            <button class="refresh-btn" id="refreshSuggestion" onclick="refreshSuggestion()">🔄</button>
+          </div>
+          <div class="suggestion-card" id="suggestionCard">
+            <div class="suggestion-icon">🎯</div>
+            <div class="suggestion-text">
+              <div class="suggestion-title">Ready to detect your mood!</div>
+              <div class="suggestion-desc">Look at the camera to get personalized suggestions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('status');
+
+    let isRunning = false;
+    let detectionInterval;
+    let currentEmotion = 'Neutral';
+
+    // Emotion icons mapping
+    const emotionIcons = {
+      'Happy': '😊',
+      'Sad': '😢',
+      'Angry': '😠',
+      'Fear': '😨',
+      'Surprise': '😲',
+      'Disgust': '🤢',
+      'Neutral': '😐'
+    };
+
+    // Activity suggestions for each emotion
+    const activitySuggestions = {
+      'Happy': [
+        {
+          icon: '📸',
+          title: 'Share Your Joy!',
+          desc: 'Capture this moment and share your smile with friends on social media'
+        },
+        {
+          icon: '🎉',
+          title: 'Spread Positivity',
+          desc: 'Call a friend or family member to brighten their day too'
+        },
+        {
+          icon: '🎵',
+          title: 'Dance It Out',
+          desc: 'Play your favorite upbeat music and dance to keep the energy high'
+        }
+      ],
+      'Sad': [
+        {
+          icon: '🎵',
+          title: 'Calming Music',
+          desc: 'Listen to some soothing music or nature sounds to relax your mind'
+        },
+        {
+          icon: '☕',
+          title: 'Warm Comfort',
+          desc: 'Make yourself a warm cup of tea or hot chocolate'
+        },
+        {
+          icon: '📞',
+          title: 'Connect with Someone',
+          desc: 'Reach out to a trusted friend or family member for support'
+        }
+      ],
+      'Angry': [
+        {
+          icon: '🧘‍♀️',
+          title: 'Deep Breathing',
+          desc: 'Take 5 deep breaths: inhale for 4, hold for 4, exhale for 6'
+        },
+        {
+          icon: '🚶‍♂️',
+          title: 'Take a Walk',
+          desc: 'Go for a short walk outside to clear your head and cool down'
+        },
+        {
+          icon: '✍️',
+          title: 'Write It Down',
+          desc: 'Journal your feelings to process and release the anger'
+        }
+      ],
+      'Fear': [
+        {
+          icon: '🧘‍♀️',
+          title: 'Grounding Exercise',
+          desc: 'Name 5 things you can see, 4 you can touch, 3 you can hear'
+        },
+        {
+          icon: '💪',
+          title: 'Positive Affirmations',
+          desc: 'Remind yourself: "I am safe, I am strong, I can handle this"'
+        },
+        {
+          icon: '🤗',
+          title: 'Seek Support',
+          desc: 'Talk to someone you trust about what\'s making you feel afraid'
+        }
+      ],
+      'Surprise': [
+        {
+          icon: '📝',
+          title: 'Capture the Moment',
+          desc: 'Write down what surprised you - it might be worth remembering!'
+        },
+        {
+          icon: '🤔',
+          title: 'Reflect & Process',
+          desc: 'Take a moment to think about this unexpected experience'
+        },
+        {
+          icon: '📱',
+          title: 'Share the News',
+          desc: 'Tell someone about your surprising experience'
+        }
+      ],
+      'Disgust': [
+        {
+          icon: '🌿',
+          title: 'Fresh Air',
+          desc: 'Step outside or open a window to get some fresh air'
+        },
+        {
+          icon: '🧼',
+          title: 'Cleanse & Refresh',
+          desc: 'Wash your hands or face, or tidy up your space'
+        },
+        {
+          icon: '🎵',
+          title: 'Pleasant Distraction',
+          desc: 'Listen to your favorite music or watch something uplifting'
+        }
+      ],
+      'Neutral': [
+        {
+          icon: '🎯',
+          title: 'Set a Goal',
+          desc: 'Use this calm moment to plan something you want to achieve today'
+        },
+        {
+          icon: '📚',
+          title: 'Learn Something New',
+          desc: 'Read an article or watch a video about something interesting'
+        },
+        {
+          icon: '🧘‍♀️',
+          title: 'Mindful Moment',
+          desc: 'Practice a few minutes of meditation or mindfulness'
+        }
+      ]
+    };
+
+    // Check if user is logged in
+    async function checkAuth() {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        const response = await fetch('http://127.0.0.1:5000/check-auth', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('username').textContent = data.user.username;
+          document.getElementById('userAvatar').textContent = data.user.username.charAt(0).toUpperCase();
+        } else {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('user_data');
+          window.location.href = 'login.html';
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
+        window.location.href = 'login.html';
+      }
+    }
+
+    // Initialize camera
+    async function initCamera() {
+      try {
+        statusDiv.innerHTML = '<div class="status">🎥 Initializing camera...</div>';
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640, max: 640 },
+            height: { ideal: 480, max: 480 },
+            facingMode: 'user',
+            frameRate: { ideal: 30, max: 30 } // Limit frame rate for better performance
+          }
+        });
+        video.srcObject = stream;
+
+        // Wait for video to be ready
+        video.onloadedmetadata = () => {
+          video.play(); // Ensure video plays smoothly
+          statusDiv.innerHTML = '<div class="status success">✨ Camera ready! Starting emotion detection...</div>';
+          setTimeout(startDetection, 1000);
+        };
+
+      } catch (error) {
+        console.error('Camera error:', error);
+        statusDiv.innerHTML = '<div class="status error">❌ Camera access denied. Please allow camera permission and refresh the page.</div>';
+      }
+    }
+
+    // Start emotion detection
+    function startDetection() {
+      if (isRunning) return;
+      isRunning = true;
+      detectionInterval = setInterval(sendFrameToServer, 1000); // Slower for better performance
+      statusDiv.innerHTML = '<div class="status success">🎭 Detecting emotions...</div>';
+    }
+
+    // Stop detection
+    function stopDetection() {
+      isRunning = false;
+      if (detectionInterval) {
+        clearInterval(detectionInterval);
+      }
+    }
+
+    // Send frame to server
+    async function sendFrameToServer() {
+      if (!video.videoWidth || !video.videoHeight || !isRunning) return;
+
+      // Use full resolution for better face detection accuracy
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL('image/jpeg', 0.7); // Better quality for accuracy
+
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('http://127.0.0.1:5000/predict', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ image: dataURL })
+        });
+
+        if (res.ok) {
+          const results = await res.json();
+          drawResults(results);
+        } else {
+          console.error('Server error:', res.status);
+          statusDiv.innerHTML = '<div class="status error">❌ Server error. Check if Flask is running.</div>';
+        }
+      } catch (err) {
+        console.error('Connection error:', err);
+        statusDiv.innerHTML = '<div class="status error">Connection lost. Check if server is running.</div>';
+      }
+    }
+
+    // Draw detection results
+    function drawResults(results) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (results.length > 0) {
+        const face = results[0]; // Take first face
+        let { x, y, w, h } = face.box;
+        const label = face.label;
+        const conf = (face.confidence * 100).toFixed(1);
+
+        // Scale coordinates from 320x240 back to 640x480
+        const scaleX = canvas.width / 320;  // 640 / 320 = 2
+        const scaleY = canvas.height / 240; // 480 / 240 = 2
+        
+        x = x * scaleX;
+        y = y * scaleY;
+        w = w * scaleX;
+        h = h * scaleY;
+
+        // Draw bounding box with modern styling
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#60a5fa';
+        ctx.shadowBlur = 15;
+        ctx.strokeRect(x, y, w, h);
+        ctx.shadowBlur = 0;
+
+        // Draw corner accents
+        const cornerSize = 20;
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 4;
+        
+        // Top-left corner
+        ctx.beginPath();
+        ctx.moveTo(x, y + cornerSize);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + cornerSize, y);
+        ctx.stroke();
+        
+        // Top-right corner
+        ctx.beginPath();
+        ctx.moveTo(x + w - cornerSize, y);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x + w, y + cornerSize);
+        ctx.stroke();
+        
+        // Bottom-left corner
+        ctx.beginPath();
+        ctx.moveTo(x, y + h - cornerSize);
+        ctx.lineTo(x, y + h);
+        ctx.lineTo(x + cornerSize, y + h);
+        ctx.stroke();
+        
+        // Bottom-right corner
+        ctx.beginPath();
+        ctx.moveTo(x + w - cornerSize, y + h);
+        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x + w, y + h - cornerSize);
+        ctx.stroke();
+
+        // Draw label with modern styling
+        const labelText = `${label} (${conf}%)`;
+        ctx.font = 'bold 16px Inter, sans-serif';
+        const textWidth = ctx.measureText(labelText).width;
+
+        // Background for text with rounded corners
+        const padding = 12;
+        const bgX = x;
+        const bgY = y - 45;
+        const bgWidth = textWidth + padding * 2;
+        const bgHeight = 30;
+        
+        ctx.fillStyle = 'rgba(15, 15, 35, 0.9)';
+        ctx.beginPath();
+        ctx.roundRect(bgX, bgY, bgWidth, bgHeight, 8);
+        ctx.fill();
+
+        // Text
+        ctx.fillStyle = '#f1f5f9';
+        ctx.textAlign = 'left';
+        ctx.fillText(labelText, bgX + padding, bgY + 20);
+
+        // Update emotion display
+        updateEmotionDisplay(label, conf);
+      } else {
+        // No face detected
+        updateEmotionDisplay('No Face', 0);
+      }
+    }
+
+    // Update emotion display
+    function updateEmotionDisplay(emotion, confidence) {
+      const emotionIcon = document.getElementById('emotionIcon');
+      const emotionName = document.getElementById('currentEmotion');
+      const emotionConf = document.getElementById('confidence');
+
+      if (emotion === 'No Face') {
+        emotionIcon.textContent = '👤';
+        emotionName.textContent = 'No Face Detected';
+        emotionConf.textContent = 'Move closer to camera';
+        showDefaultSuggestion();
+      } else {
+        emotionIcon.textContent = emotionIcons[emotion] || '😐';
+        emotionName.textContent = emotion;
+        emotionConf.textContent = `${confidence}% confident`;
+        currentEmotion = emotion;
+        showActivitySuggestion(emotion);
+      }
+    }
+
+    // Show activity suggestion based on emotion
+    function showActivitySuggestion(emotion) {
+      const suggestionCard = document.getElementById('suggestionCard');
+      const suggestions = activitySuggestions[emotion];
+
+      if (suggestions && suggestions.length > 0) {
+        // Pick a random suggestion from the emotion's suggestions
+        const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+
+        suggestionCard.innerHTML = `
+          <div class="suggestion-icon">${randomSuggestion.icon}</div>
+          <div class="suggestion-text">
+            <div class="suggestion-title">${randomSuggestion.title}</div>
+            <div class="suggestion-desc">${randomSuggestion.desc}</div>
+          </div>
+        `;
+
+        // Add a subtle animation
+        suggestionCard.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          suggestionCard.style.transform = 'scale(1)';
+        }, 100);
+      }
+    }
+
+    // Show default suggestion when no face detected
+    function showDefaultSuggestion() {
+      const suggestionCard = document.getElementById('suggestionCard');
+      suggestionCard.innerHTML = `
+        <div class="suggestion-icon">🎯</div>
+        <div class="suggestion-text">
+          <div class="suggestion-title">Ready to detect your mood!</div>
+          <div class="suggestion-desc">Look at the camera to get personalized activity suggestions</div>
+        </div>
+      `;
+    }
+
+
+
+    // Logout
+    async function logout() {
+      try {
+        const token = localStorage.getItem('access_token');
+        await fetch('http://127.0.0.1:5000/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
+        window.location.href = 'login.html';
+      } catch (error) {
+        console.error('Logout error:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
+        window.location.href = 'login.html';
+      }
+    }
+
+    // Initialize app
+    window.addEventListener('load', () => {
+      checkAuth();
+      initCamera();
+    });
+
+    // Refresh suggestion function
+    function refreshSuggestion() {
+      if (currentEmotion && currentEmotion !== 'No Face') {
+        showActivitySuggestion(currentEmotion);
+      }
+    }
+
+    // Handle page visibility
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopDetection();
+      } else if (video.srcObject) {
+        startDetection();
+      }
+    });
+  </script>
+</body>
+
+</html>
